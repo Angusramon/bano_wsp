@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Baño ocupado</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family: sans-serif; text-align: center; padding: 20px; }
+    .status { font-size: 1.4rem; margin: 20px 0; font-weight: bold; }
+    .free { color: green; }
+    .occupied { color: red; }
+    button { padding: 10px 20px; margin: 10px; font-size: 1rem; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>Estado del baño</h1>
+  <div id="userName"></div>
+  <div id="statusText" class="status"></div>
+  <button id="btnEnter">Entrar</button>
+  <button id="btnFree">Liberar</button>
+
+  <script>
+    // Usuario desde la URL ?user=matias o ?user=persona2
+    const params = new URLSearchParams(window.location.search);
+    const user = params.get('user');
+
+    const allowedUsers = ['matias', 'persona2'];
+
+    const userNameDiv = document.getElementById('userName');
+    const statusText = document.getElementById('statusText');
+    const btnEnter = document.getElementById('btnEnter');
+    const btnFree = document.getElementById('btnFree');
+
+    if (!user || !allowedUsers.includes(user)) {
+      userNameDiv.textContent = 'Usuario no autorizado.';
+      btnEnter.disabled = true;
+      btnFree.disabled = true;
+    } else {
+      userNameDiv.textContent = `Ingresaste como: ${user}`;
+    }
+
+    async function fetchStatus() {
+      const res = await fetch('/api/state');
+      const data = await res.json();
+      render(data);
+    }
+
+    function render(state) {
+      if (state.status === 'free') {
+        statusText.textContent = 'Baño LIBRE';
+        statusText.className = 'status free';
+        btnEnter.disabled = false;
+        btnFree.disabled = true;
+      } else {
+        statusText.textContent = `OCUPADO por: ${state.occupiedBy}`;
+        statusText.className = 'status occupied';
+        btnEnter.disabled = true;
+        btnFree.disabled = (state.occupiedBy !== user);
+      }
+    }
+
+    btnEnter.onclick = async () => {
+      await fetch('/api/occupy?user=' + user);
+      fetchStatus();
+    };
+
+    btnFree.onclick = async () => {
+      await fetch('/api/free?user=' + user);
+      fetchStatus();
+    };
+
+    setInterval(fetchStatus, 2000);
+    fetchStatus();
+  </script>
+</body>
+</html>
